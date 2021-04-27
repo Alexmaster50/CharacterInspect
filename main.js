@@ -14,7 +14,7 @@ function getAPIKey() {
   if(keyTestResponse["error"] == "invalid_token"){
     Logger.log("TRIGGERED THE REMAKING");
     var apiusername = "[[[[REDACTED]]]]";
-    var apisecretkey = ""[[[[REDACTED]]]]";
+    var apisecretkey = "[[[[REDACTED]]]]";
     var url ='https://us.battle.net/oauth/token';
     var options = {
       "method"  : "POST",
@@ -41,6 +41,16 @@ function getAPIKey() {
   return endingKey;
 }
 
+function findItem(array, item) {
+  for (var i = 0; i < array.length; i++) {
+    if (array[i][0] == item) {
+      Logger.log("Found Answer: " + array[i])
+      return array[i];
+    }
+  }
+return "Error"
+}
+
 
 
 function userInformation(username, realm){
@@ -49,9 +59,9 @@ function userInformation(username, realm){
   var scriptProperties = PropertiesService.getScriptProperties();
   var API_Key = scriptProperties.getProperty('APIKEY');
   
-  var username = "lexirunebane"
+  //var username = "lexirunebane"
   //var username = "lexiluminate"
-  var realm = "aerie-peak"
+  //var realm = "aerie-peak"
 
   //var username = "amaranthinee"
   //var username = "ré"
@@ -64,7 +74,7 @@ function userInformation(username, realm){
   
   var response = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/equipment?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
   var ilvlResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
-  var mountResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/collections/mounts?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
+  //var mountResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/collections/mounts?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
   
   //Logger.log(response);
   
@@ -77,37 +87,19 @@ function userInformation(username, realm){
   var ilvlJson = ilvlResponse.getContentText();
   var ilvlData = JSON.parse(ilvlJson);
   
-  
-  //TODO: Fix to new API.
-  /*
-  var questJson = questResponse.getContentText();
-  var questData = JSON.parse(questJson);
-  
-  
-  
-  var azeriteWeekly = "Incomplete"
-  
-  if(questData["quests"].indexOf(53436) != -1){
-    azeriteWeekly = "Complete"
-  }
-  */
-  
-  //var combined = HoALevel(data);
-
   var ringArr = EnchantRing1(data);
 
   var ringArr2 = EnchantRing2(data);
 
-  var weaponArr = EnchantWeapon(data);
+  var mainHandArr = EnchantMainhand(data);
+
+  var offHandArr = EnchantOffhand(data);
 
   var bagilvl = BagItemLevel(ilvlData);
   
   var onilvl = EquippedItemLevel(ilvlData);
 
-  //var emissary = Emissary(questData);
-  
-  //var cloakrank = CloakLevel(data);
-  
+
   
   /*
   var jainaJson = mountResponse.getContentText();
@@ -126,11 +118,7 @@ function userInformation(username, realm){
   }
   */
   
-  
-
-
-
-  return weaponArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl;
+  return mainHandArr + "," + offHandArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl;
 }
 
 
@@ -167,58 +155,9 @@ function mythicInformation(username, realm){
 
 
 
-function HoALevel(data) {
-  
-  var slotSearch = 0;
-  var slotFound = 0;
-  do {
-    if(data["equipped_items"][slotSearch]["slot"]["type"] == "NECK"){
-      var neckSlot = slotSearch;
-      slotFound = 1;
-	}
-	slotSearch += 1;
-  } while(slotFound == 0);
-  
-
-  var heartlevel = parseFloat(data["equipped_items"][neckSlot]["azerite_details"]["level"]["value"]);
-  var azeriteExperience = parseFloat(data["equipped_items"][neckSlot]["azerite_details"]["percentage_to_next_level"]);
-  
-  var combined = heartlevel + azeriteExperience;
-
-  
-  return combined;
-}
-
-
-
-function CloakLevel(data) {
-  
-  var slotSearch = 0;
-  var slotFound = 0;
-  do {
-    if(data["equipped_items"][slotSearch]["slot"]["type"] == "BACK"){
-      var cloakSlot = slotSearch;
-      slotFound = 1;
-	}
-	slotSearch += 1;
-  } while(slotFound == 0);
-  
-  if(data["equipped_items"][cloakSlot]["quality"]["type"] == "LEGENDARY"){
-    var cloakItemLevel = data["equipped_items"][cloakSlot]["level"]["value"];
-    var cloakRank = (cloakItemLevel - 468)/2
-    return cloakRank;
-
-  }else{
-    return "Unequipped";
-  }
-}
-
-
 
 function EnchantRing1(data) {
   
-  Logger.log("Started Ring Enchant1");
-
   var slotSearch = 0;
   var slotFound = 0;
   do {
@@ -229,15 +168,11 @@ function EnchantRing1(data) {
 	slotSearch += 1;
   } while(slotFound == 0);
   
-  
   if (data["equipped_items"][finger_1Slot]["enchantments"] === undefined){
     return "None";
-    exit();
   }
   
   var ringEnchant = data["equipped_items"][finger_1Slot]["enchantments"]["0"]["enchantment_id"];
-  
-
   
   var enchants = [
     [6163, "Bad",  "Bargain of Critical Strike" ],
@@ -250,38 +185,16 @@ function EnchantRing1(data) {
     [6170, "Good", "Tenet of Versatility" ]
   ];
   
-  
-  //searches for the enchant ID in the enchants table
-  /*
-  var ringArr = enchants.filter( function ( el ) {
 
-    return !!~el.indexOf( ringEnchant );
-  } );
-  */
-
-  Logger.log("Before Search Function Setup");
-  function findItem(array, item) {
-    for (var i = 0; i < 8; i++) {
-      if (array[i][0] == item) {
-        Logger.log("Found Answer: " + array[i])
-        return array[i];
-      }
-    }
-
-  Logger.log("Unknown / No Enchant");
-  return "Error"
-  }
 
 
   var ringArr = findItem(enchants, ringEnchant);
-
-
   
   if(ringArr != "Error"){
     return ringArr[1];
   }
   else{
-    return "Unknown / None"
+    return "Unknown"
   }
 }
 
@@ -299,7 +212,7 @@ function EnchantRing2(data) {
 	slotSearch += 1;
   } while(slotFound == 0);
   
-    if (data["equipped_items"][finger_2Slot]["enchantments"] === undefined){
+  if (data["equipped_items"][finger_2Slot]["enchantments"] === undefined){
     return "None";
   }
   
@@ -315,17 +228,6 @@ function EnchantRing2(data) {
     [6169, "Bad",  "Bargain of Versatility" ],
     [6170, "Good", "Tenet of Versatility" ]
   ];
-  
-
-  function findItem(array, item) {
-    for (var i = 0; i < array.length; i++) {
-      if (array[i][0] == item) {
-        Logger.log("Found Answer: " + array[i])
-        return array[i];
-      }
-    }
-  return "Error"
-  }
 
   var ringArr = findItem(enchants, ringEnchant);
   
@@ -333,14 +235,18 @@ function EnchantRing2(data) {
     return ringArr[1];
   }
   else{
-    return "Unknown / None"
+    return "Unknown"
   }
 }
 
 
-function EnchantWeapon(data) {
-  
-  
+
+
+
+
+
+
+function EnchantMainhand(data) {
   
   var slotSearch = 0;
   var slotFound = 0;
@@ -354,7 +260,6 @@ function EnchantWeapon(data) {
   
   if (data["equipped_items"][weaponSlot]["enchantments"] === undefined){
     return "None";
-    exit();
   }
   
   var MainhandEnchant = data["equipped_items"][weaponSlot]["enchantments"]["0"]["enchantment_id"];
@@ -400,14 +305,100 @@ function EnchantWeapon(data) {
     //OILS / STONES
     [6190, "None " ] //Embalmers Oil
     ];
+
+  var weaponArr = findItem(weaponEnchants, MainhandEnchant);
+
+    if(weaponArr != "Error"){
+    return weaponArr[1];
+  }
+  else{
+    return "Unknown"
+  }
+}
+
+
+
+
+function EnchantOffhand(data) {
   
-  var weaponArr = weaponEnchants.filter( function ( el ) {
-    return !!~el.indexOf( MainhandEnchant );
-  } );
+  var slotSearch = 0;
+  var slotFound = 0;
+
+  try {
+   do {
+    if(data["equipped_items"][slotSearch]["slot"]["type"] == "OFF_HAND"){
+      var weaponSlot = slotSearch;
+        if (data["equipped_items"][weaponSlot]["inventory_type"]["type"] == "WEAPON" || data["equipped_items"][weaponSlot]["inventory_type"]["type"] == "TWOHWEAPON") {
+         slotFound = 1;
+       }
+      else {
+        return "Unenchantable"
+      }
+	  }
+	  slotSearch += 1;
+    } while(slotFound == 0);
+  }catch(error){
+    return "No Offhand"
+  }
+
+
+  if (data["equipped_items"][weaponSlot]["enchantments"] === undefined){
+    return "None";
+  }
   
-  Logger.log(weaponArr);
+  var MainhandEnchant = data["equipped_items"][weaponSlot]["enchantments"]["0"]["enchantment_id"];
   
-  return weaponArr[0][1];
+
+
+  
+  var weaponEnchants = [
+    //BFA
+    [6112, "Machinist's Brilliance" ],
+    [6148, "Force Multiplier" ],
+    [6149, "Oceanic Restoration" ],
+    [6150, "Naga Hide" ],
+    [5946, "Coastal Surge" ],
+    [5948, "Siphoning" ],
+    [5949, "Torrent of Elements" ],
+    [5950, "Gale-Force Striking" ],
+    [5965, "Deadly Navigation" ],
+    [5963, "Quick Navigation" ],
+    [5964, "Masterful Navigation" ],
+    [5962, "Versatile Navigation" ],
+    [5966, "Stalwart Navigation" ],
+    //HUNTER SCOPES
+    [5955, "Crow's Nest Scope" ],
+    [5958, "Frost-Laced Ammunition" ],
+    [5957, "Incendiary Ammunition" ],
+    [5956, "Monelite Scope of Alacrity" ],
+
+
+    //DK RUNEFORGES
+    [3370, "Rune of Razorice" ],
+    [3368, "Rune of the Fallen Crusader" ],
+
+    //SHADOWLANDS
+    [6229, "Celestial Guidance" ],
+    [6227, "Ascended Vigor" ],
+    [6226, "Eternal Grace" ],
+    [6223, "Lightless Force" ],
+    [6228, "Sinful Revelation" ],
+    //HUNTER SCOPES
+    [6195, "Infra-green Reflex Sight" ],
+    [6196, "Optical Target Embiggener " ],
+
+    //OILS / STONES
+    [6190, "None " ] //Embalmers Oil
+    ];
+
+  var weaponArr = findItem(weaponEnchants, MainhandEnchant);
+
+    if(weaponArr != "Error"){
+    return weaponArr[1];
+  }
+  else{
+    return "Unknown"
+  }
 }
 
 
@@ -427,49 +418,4 @@ function EquippedItemLevel(data) {
   
   //Logger.log(ilvl);
   return ilvl;
-}
-
-
-
-function Emissary(data) {
-  
-  var emissaryAmount = 0
-  
-  //7th Legion
-  if(data["quests"].indexOf(50605) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Champions of Azeroth
-  if(data["quests"].indexOf(50562) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Order of Embers
-  if(data["quests"].indexOf(50600) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Proudmoore Admiralty
-  if(data["quests"].indexOf(50599) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Storm's Wake
-  if(data["quests"].indexOf(50601) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Tortollan Seekers
-  if(data["quests"].indexOf(50604) != -1){
-    emissaryAmount += 1;
-  }
-  
-  //Waveblade Ankoan
-  if(data["quests"].indexOf(56119) != -1){
-    emissaryAmount += 1;
-  }
-  
-  return emissaryAmount;
-  
 }

@@ -53,6 +53,8 @@ return "Error"
 
 
 
+
+
 function userInformation(username, realm){
  
   getAPIKey();
@@ -61,32 +63,43 @@ function userInformation(username, realm){
   
   //var username = "lexirunebane"
   //var username = "lexiluminate"
+  //var username = "lexilaration"
+  //var username = "lexilacrity"
+  //var username = "lexilunaries"
   //var realm = "aerie-peak"
 
-  //var username = "amaranthinee"
-  //var username = "ré"
-  
+//  Brute force retrying if the API refuses to respond. 
+//  Throttle is 100 requests per second. 36,000 per hour. Very unlikely this gets me rate limited.
 
-  
-  //var username = "prairiedog"
-  //var realm = "windrunner"
-  
-  
-  var response = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/equipment?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
-  var ilvlResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
-  //var mountResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/collections/mounts?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
-  
-  //Logger.log(response);
-  
-  //var questResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/wow/character/"+realm+"/"+username+"?fields=quests&namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
-  //Logger.log(response)
-  
+  var ilvlResponse  = ""
+  var response = ""
+
+
+//  Debug Variables to just check how many retry attempts were made
+  var ilvlRetry = 0
+  var regRetry = 0
+
+  do {
+    ilvlResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
+    ilvlRetry++;
+    Logger.log("ilvl attempts:" + ilvlRetry);
+  } while (ilvlResponse == "")
+
+  do {
+    response = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/"+realm+"/"+username+"/equipment?namespace=profile-us&locale=en_US&access_token=" + API_Key, {"muteHttpExceptions":true});
+    regRetry++;
+    Logger.log("regular attempts:" + regRetry);
+  } while (response == "")
+
+  //  Parse the JSON
+  var ilvlJson = ilvlResponse.getContentText();
+  var ilvlData = JSON.parse(ilvlJson);
+
   var json = response.getContentText();
   var data = JSON.parse(json);
   
-  var ilvlJson = ilvlResponse.getContentText();
-  var ilvlData = JSON.parse(ilvlJson);
-  
+
+  //  Call all the extraction functions
   var ringArr = EnchantRing1(data);
 
   var ringArr2 = EnchantRing2(data);
@@ -95,6 +108,10 @@ function userInformation(username, realm){
 
   var offHandArr = EnchantOffhand(data);
 
+  var backArr = EnchantBack(data);
+
+  var chestArr = EnchantChest(data);
+
   var bagilvl = BagItemLevel(ilvlData);
   
   var onilvl = EquippedItemLevel(ilvlData);
@@ -102,6 +119,10 @@ function userInformation(username, realm){
 
   
   /*
+
+
+  //  Old function that could see reuse if a non-aotc end-boss drops a mount
+
   var jainaJson = mountResponse.getContentText();
   var jainaData = JSON.parse(jainaJson);
   var jainaMountID = 1219; // Or whatever
@@ -118,8 +139,11 @@ function userInformation(username, realm){
   }
   */
   
-  return mainHandArr + "," + offHandArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl;
+  //Return the extracted data
+  return mainHandArr + "," + offHandArr + "," + backArr + "," + chestArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl;
 }
+
+
 
 
 
@@ -152,6 +176,7 @@ function mythicInformation(username, realm){
   }
   
 }
+
 
 
 
@@ -200,6 +225,8 @@ function EnchantRing1(data) {
 
 
 
+
+
 function EnchantRing2(data) {
 
   var slotSearch = 0;
@@ -243,9 +270,6 @@ function EnchantRing2(data) {
 
 
 
-
-
-
 function EnchantMainhand(data) {
   
   var slotSearch = 0;
@@ -264,7 +288,6 @@ function EnchantMainhand(data) {
   
   var MainhandEnchant = data["equipped_items"][weaponSlot]["enchantments"]["0"]["enchantment_id"];
  
-
   
   var weaponEnchants = [
     //BFA
@@ -293,11 +316,11 @@ function EnchantMainhand(data) {
     [3368, "Rune of the Fallen Crusader" ],
 
     //SHADOWLANDS
-    [6229, "Celestial Guidance" ],
-    [6227, "Ascended Vigor" ],
-    [6226, "Eternal Grace" ],
     [6223, "Lightless Force" ],
+    [6226, "Eternal Grace" ],
+    [6227, "Ascended Vigor" ],
     [6228, "Sinful Revelation" ],
+    [6229, "Celestial Guidance" ],
     //HUNTER SCOPES
     [6195, "Infra-green Reflex Sight" ],
     [6196, "Optical Target Embiggener " ],
@@ -315,6 +338,7 @@ function EnchantMainhand(data) {
     return "Unknown"
   }
 }
+
 
 
 
@@ -378,11 +402,12 @@ function EnchantOffhand(data) {
     [3368, "Rune of the Fallen Crusader" ],
 
     //SHADOWLANDS
-    [6229, "Celestial Guidance" ],
-    [6227, "Ascended Vigor" ],
-    [6226, "Eternal Grace" ],
     [6223, "Lightless Force" ],
+    [6226, "Eternal Grace" ],
+    [6227, "Ascended Vigor" ],
     [6228, "Sinful Revelation" ],
+    [6229, "Celestial Guidance" ],
+
     //HUNTER SCOPES
     [6195, "Infra-green Reflex Sight" ],
     [6196, "Optical Target Embiggener " ],
@@ -400,6 +425,83 @@ function EnchantOffhand(data) {
     return "Unknown"
   }
 }
+
+function EnchantBack(data) {
+
+  var slotSearch = 0;
+  var slotFound = 0;
+  do {
+    if(data["equipped_items"][slotSearch]["slot"]["type"] == "BACK"){
+      var backSlot = slotSearch;
+      slotFound = 1;
+	}
+	slotSearch += 1;
+  } while(slotFound == 0);
+  
+  if (data["equipped_items"][backSlot]["enchantments"] === undefined){
+    return "None";
+  }
+  
+  var backEnchant = data["equipped_items"][backSlot]["enchantments"]["0"]["enchantment_id"];
+  
+  var enchants = [
+    [6202, "Good", "Fortified Speed" ],
+    [6203, "Good", "Fortified Avoidance" ],
+    [6204, "Good", "Fortified Leech" ],
+    [6208, "Bad",  "Soul Vitality" ]
+  ];
+
+  var backArr = findItem(enchants, backEnchant);
+  
+  if(backArr != "Error"){
+    return backArr[1];
+  }
+  else{
+    return "Unknown"
+  }
+}
+
+
+function EnchantChest(data) {
+
+  var slotSearch = 0;
+  var slotFound = 0;
+  do {
+    if(data["equipped_items"][slotSearch]["slot"]["type"] == "CHEST"){
+      var chestSlot = slotSearch;
+      slotFound = 1;
+	}
+	slotSearch += 1;
+  } while(slotFound == 0);
+  
+  if (data["equipped_items"][chestSlot]["enchantments"] === undefined){
+    return "None";
+  }
+  
+  var chestEnchant = data["equipped_items"][chestSlot]["enchantments"]["0"]["enchantment_id"];
+  
+  var enchants = [
+    [6213, "Good", "Eternal Bulwark" ],
+    [6214, "Good", "Eternal Skirmish" ],
+    [6216, "Bad",  "Sacred Stats" ],
+    [6217, "Good", "Eternal Bounds" ],
+    [6230, "Good", "Eternal Stats" ],
+    [6265, "Good", "Eternal Insight" ]
+  ];
+
+  var chestArr = findItem(enchants, chestEnchant);
+  
+  if(chestArr != "Error"){
+    return chestArr[1];
+  }
+  else if (data["equipped_items"][chestSlot]["enchantments"]["0"]["enchantment_slot"]["type"] == "TEMPORARY") {
+    return "None";
+  } else{
+    return "Unknown";
+  }
+}
+
+
 
 
 

@@ -68,6 +68,7 @@ function userInformation(username, realm) {
   //var username = "lexilunaries"
   //var username = "lexijademist"
   //var username = "leximpyrean"
+  //var username = "lexifliction"
   //var realm = "aerie-peak"
 
   //  Brute force retrying if the API refuses to respond. 
@@ -335,8 +336,8 @@ function EnchantMainhand(data) {
 
 
     //DK RUNEFORGES
-    [3370, "Rune of Razorice"],
-    [3368, "Rune of the Fallen Crusader"],
+    [3370, "[R] Razorice"],
+    [3368, "[R] Fallen Crusader"],
 
     //SHADOWLANDS
     [6223, "Lightless Force"],
@@ -345,8 +346,8 @@ function EnchantMainhand(data) {
     [6228, "Sinful Revelation"],
     [6229, "Celestial Guidance"],
     //HUNTER SCOPES
-    [6195, "Infra-green Reflex Sight"],
-    [6196, "Optical Target Embiggener "],
+    [6195, "[S] Haste"],
+    [6196, "[S] Crit"],
 
     //OILS / STONES
     [6190, "None "] //Embalmers Oil
@@ -421,8 +422,8 @@ function EnchantOffhand(data) {
 
 
     //DK RUNEFORGES
-    [3370, "Rune of Razorice"],
-    [3368, "Rune of the Fallen Crusader"],
+    [3370, "[R] Razorice"],
+    [3368, "[R] Fallen Crusader"],
 
     //SHADOWLANDS
     [6223, "Lightless Force"],
@@ -430,10 +431,9 @@ function EnchantOffhand(data) {
     [6227, "Ascended Vigor"],
     [6228, "Sinful Revelation"],
     [6229, "Celestial Guidance"],
-
     //HUNTER SCOPES
-    [6195, "Infra-green Reflex Sight"],
-    [6196, "Optical Target Embiggener "],
+    [6195, "[S] Haste"],
+    [6196, "[S] Crit"],
 
     //OILS / STONES
     [6190, "None "] //Embalmers Oil
@@ -553,9 +553,9 @@ function WeeklyEventQuest(progData, completedData) {
 
   var weeklyQuests = [
     [62638, "Emissary of War"],
-    [],
-    [],
-    [],
+    [62637, "A Call to Battle"],
+    [62635, "A Shrouded Path Through Time"], //MoP TW
+    [62632, "A Burning Path Through Time"], //TBC TW
     [],
     []
   ];
@@ -566,7 +566,7 @@ function WeeklyEventQuest(progData, completedData) {
   var compQuestSearch = completedData["quests"].length -1;
 
 
-  for (var i = 0; i < 125; i++) {
+  for (var i = 0; i < 250; i++) {
     for (var j = 0; j < weeklyQuests.length; j++) {
       if (completedData["quests"][compQuestSearch]["id"] == weeklyQuests[j][0]) {
         questID = weeklyQuests[j][0];
@@ -601,8 +601,3 @@ function WeeklyEventQuest(progData, completedData) {
   return questStatus;
 
 }
-
-
-
-
-

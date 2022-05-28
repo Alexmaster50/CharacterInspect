@@ -1,3 +1,9 @@
+function feelingSleepy(ms) {
+  SpreadsheetApp.flush();
+  Utilities.sleep(ms);
+  SpreadsheetApp.flush();
+}
+
 function getAPIKey() {
 
   //Get the current global variable - APIKEY
@@ -41,6 +47,83 @@ function getAPIKey() {
   return endingKey;
 }
 
+function getResetTimes() {
+  'use strict'
+  // Get the current time
+  let date = new Date();
+  const CURRENT_TIME = Math.floor(date.getTime() / 1000) * 1000;
+
+  const WEEK_IN_MS = 604800000;
+  const DAY_IN_MS = 86400000;
+
+  // Weekly reset is at Tuesday, 15:00 UTC
+  const DAY_TUESDAY = 2;
+  const WEEKLY_RESET_OFFSET_IN_MS = 54000000;
+
+  // Check if the weekly reset happened, and if it did: recalculate the current and next weekly resets
+  let scriptProperties = PropertiesService.getScriptProperties();
+  let nextResetProperty = Number(scriptProperties.getProperty('NEXT_RESET'));
+  //Logger.log("current unix time: " + CURRENT_TIME);
+  //Logger.log("current Script Properties - NEXT_RESET: " + nextResetProperty);
+
+  if (CURRENT_TIME > nextResetProperty) {
+
+    function getThisResetStartTime() {
+
+      // Get today's midnight
+      let today = new Date();
+      today.setUTCHours(0, 0, 0);
+
+      // Start the week with Monday, so assign 7 when its a Sunday (0)
+      let dayToday = today.getDay() || 7;
+
+      // Calculate ms elapsed since Tuesday
+      let msSinceTuesday = ((dayToday - DAY_TUESDAY) * DAY_IN_MS);
+
+      // Subtract today midnight with the diff to get midnight of the Tuesday
+      let tuesdayMidnightTime = today.getTime() - msSinceTuesday;
+
+      // Add Weekly Reset Offset, in order to get exact Weekly Reset time
+      let tuesdayResetTime = Math.floor((tuesdayMidnightTime + WEEKLY_RESET_OFFSET_IN_MS) / 1000) * 1000;
+
+      return tuesdayResetTime;
+    }
+
+    // This is pretty much the same except with an additional week.
+    function getNextResetStartTime() {
+      return getThisResetStartTime() + WEEK_IN_MS;
+    }
+
+    console.log("WEEKLY RESET RECALCULATIONS HAPPENED, NEW INFORMATION BELOW")
+
+    console.log("This Reset: " + new Date(getThisResetStartTime()));
+    console.log("Next Reset: " + new Date(getNextResetStartTime()));
+
+    console.log("This Reset [In Unix]: " + getThisResetStartTime());
+    console.log("Next Reset [In Unix]: " + getNextResetStartTime());
+
+    scriptProperties.setProperty("THIS_RESET", Number(getThisResetStartTime()))
+    scriptProperties.setProperty("NEXT_RESET", Number(getNextResetStartTime()))
+  }
+  return;
+};
+
+function getCurrentResetTime() {
+  getResetTimes();
+  let scriptProperties = PropertiesService.getScriptProperties();
+  let currentResetProperty = Number(scriptProperties.getProperty('THIS_RESET'));
+  //Logger.log(currentResetProperty)
+  return currentResetProperty;
+}
+
+function getNextResetTime() {
+  getResetTimes();
+  let scriptProperties = PropertiesService.getScriptProperties();
+  let nextResetProperty = Number(scriptProperties.getProperty('NEXT_RESET'));
+  //Logger.log(nextResetProperty)
+  return nextResetProperty;
+}
+
 function findItem(array, item) {
   for (var i = 0; i < array.length; i++) {
     if (array[i][0] == item) {
@@ -50,10 +133,6 @@ function findItem(array, item) {
   }
   return "Error"
 }
-
-
-
-
 
 function userInformation(username, realm) {
 
@@ -90,24 +169,25 @@ function userInformation(username, realm) {
     ilvlRetry++;
     Logger.log("ilvl attempts:" + ilvlRetry);
   } while (ilvlResponse == "")
-
+  feelingSleepy(10);
   do {
     gearResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/equipment?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     regRetry++;
     Logger.log("regular attempts:" + regRetry);
   } while (gearResponse == "")
-
+  feelingSleepy(10);
   do {
     questResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/quests?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     questRetry++;
     Logger.log("quest attempts:" + questRetry);
   } while (questResponse == "")
-
+  feelingSleepy(10);
   do {
     compQuestResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/quests/completed?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     compQuestRetry++;
     Logger.log("quest attempts:" + compQuestRetry);
   } while (compQuestResponse == "")
+  feelingSleepy(10);
 
   //  Parse the JSON
   var ilvlJson = ilvlResponse.getContentText();
@@ -167,10 +247,6 @@ function userInformation(username, realm) {
   return mainHandArr + "," + offHandArr + "," + backArr + "," + chestArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl + ", ," + weeklyQuest;
 }
 
-
-
-
-
 function mythicInformation(username, realm) {
 
   //var username = "Speedymoose"
@@ -200,10 +276,6 @@ function mythicInformation(username, realm) {
   }
 
 }
-
-
-
-
 
 function EnchantRing1(data) {
 
@@ -247,10 +319,6 @@ function EnchantRing1(data) {
   }
 }
 
-
-
-
-
 function EnchantRing2(data) {
 
   var slotSearch = 0;
@@ -289,10 +357,6 @@ function EnchantRing2(data) {
     return "Unknown"
   }
 }
-
-
-
-
 
 function EnchantMainhand(data) {
 
@@ -362,10 +426,6 @@ function EnchantMainhand(data) {
     return "Unknown"
   }
 }
-
-
-
-
 
 function EnchantOffhand(data) {
 
@@ -484,7 +544,6 @@ function EnchantBack(data) {
   }
 }
 
-
 function EnchantChest(data) {
 
   var slotSearch = 0;
@@ -524,10 +583,6 @@ function EnchantChest(data) {
   }
 }
 
-
-
-
-
 function BagItemLevel(data) {
 
   var ilvl = data["average_item_level"];
@@ -545,10 +600,6 @@ function EquippedItemLevel(data) {
   return ilvl;
 }
 
-
-
-
-
 function WeeklyEventQuest(progData, completedData) {
 
   var weeklyQuests = [
@@ -563,7 +614,7 @@ function WeeklyEventQuest(progData, completedData) {
   var questFound = 0;
   var questID = 0;
   var questStatus = 0;
-  var compQuestSearch = completedData["quests"].length -1;
+  var compQuestSearch = completedData["quests"].length - 1;
 
 
   for (var i = 0; i < 250; i++) {
@@ -573,7 +624,7 @@ function WeeklyEventQuest(progData, completedData) {
         questFound = 1;
         questStatus = "Complete";
         Logger.log("QUESTCHECK: Complete")
-        var foundIn = (completedData["quests"].length -1) - compQuestSearch
+        var foundIn = (completedData["quests"].length - 1) - compQuestSearch
         Logger.log("FOUND IN: " + foundIn)
       }
     }

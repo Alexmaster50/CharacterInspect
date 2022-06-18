@@ -112,7 +112,7 @@ function getCurrentResetTime() {
   getResetTimes();
   let scriptProperties = PropertiesService.getScriptProperties();
   let currentResetProperty = Number(scriptProperties.getProperty('THIS_RESET'));
-  //Logger.log(currentResetProperty)
+  console.log(currentResetProperty)
   return currentResetProperty;
 }
 
@@ -137,9 +137,10 @@ function findItem(array, item) {
 function userInformation(username, realm) {
 
   getAPIKey();
-  var scriptProperties = PropertiesService.getScriptProperties();
-  var API_Key = scriptProperties.getProperty('APIKEY');
+  let scriptProperties = PropertiesService.getScriptProperties();
+  let API_Key = scriptProperties.getProperty('APIKEY');
 
+  //var username = "frikityfrack"
   //var username = "lexirunebane"
   //var username = "lexiluminate"
   //var username = "lexilaration"
@@ -149,102 +150,147 @@ function userInformation(username, realm) {
   //var username = "leximpyrean"
   //var username = "lexifliction"
   //var realm = "aerie-peak"
+  //var realm = "stormrage"
+
 
   //  Brute force retrying if the API refuses to respond. 
   //  Throttle is 100 requests per second. 36,000 per hour. Very unlikely this gets me rate limited.
 
-  var ilvlResponse = ""
-  var gearResponse = ""
-  var questResponse = ""
-  var compQuestResponse = ""
+  let ilvlResponse = ""
+  let gearResponse = ""
+  let questResponse = ""
+  let compQuestResponse = ""
+  let raidVaultResponse = ""
 
   //  Debug Variables to just check how many retry attempts were made
-  var ilvlRetry = 0
-  var regRetry = 0
-  var questRetry = 0
-  var compQuestRetry = 0
+  let ilvlRetry = 0
+  let regRetry = 0
+  let questRetry = 0
+  let compQuestRetry = 0
+  let raidVaultRetry = 0
 
   do {
     ilvlResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     ilvlRetry++;
     Logger.log("ilvl attempts:" + ilvlRetry);
+    feelingSleepy(10);
   } while (ilvlResponse == "")
-  feelingSleepy(10);
+
   do {
     gearResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/equipment?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     regRetry++;
     Logger.log("regular attempts:" + regRetry);
+    feelingSleepy(10);
   } while (gearResponse == "")
-  feelingSleepy(10);
+
   do {
     questResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/quests?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     questRetry++;
     Logger.log("quest attempts:" + questRetry);
+    feelingSleepy(10);
   } while (questResponse == "")
-  feelingSleepy(10);
+
   do {
     compQuestResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/quests/completed?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
     compQuestRetry++;
     Logger.log("quest attempts:" + compQuestRetry);
+    feelingSleepy(10);
   } while (compQuestResponse == "")
-  feelingSleepy(10);
+
+  do {
+    raidVaultResponse = UrlFetchApp.fetch("https://us.api.blizzard.com/profile/wow/character/" + realm + "/" + username + "/achievements/statistics?namespace=profile-us&locale=en_US&access_token=" + API_Key, { "muteHttpExceptions": true });
+    raidVaultRetry++;
+    Logger.log("raid vault attempts:" + raidVaultRetry);
+  } while (raidVaultResponse == "")
+
 
   //  Parse the JSON
-  var ilvlJson = ilvlResponse.getContentText();
-  var ilvlData = JSON.parse(ilvlJson);
+  let ilvlJson = ilvlResponse.getContentText();
+  let ilvlData = JSON.parse(ilvlJson);
 
-  var gearJson = gearResponse.getContentText();
-  var gearData = JSON.parse(gearJson);
+  let gearJson = gearResponse.getContentText();
+  let gearData = JSON.parse(gearJson);
 
-  var questJson = questResponse.getContentText();
-  var questData = JSON.parse(questJson);
+  let questJson = questResponse.getContentText();
+  let questData = JSON.parse(questJson);
 
-  var compQuestJson = compQuestResponse.getContentText();
-  var compQuestData = JSON.parse(compQuestJson);
+  let compQuestJson = compQuestResponse.getContentText();
+  let compQuestData = JSON.parse(compQuestJson);
 
-  //  Call all the extraction functions
-  var ringArr = EnchantRing1(gearData);
 
-  var ringArr2 = EnchantRing2(gearData);
-
-  var mainHandArr = EnchantMainhand(gearData);
-
-  var offHandArr = EnchantOffhand(gearData);
-
-  var backArr = EnchantBack(gearData);
-
-  var chestArr = EnchantChest(gearData);
-
-  var bagilvl = BagItemLevel(ilvlData);
-
-  var onilvl = EquippedItemLevel(ilvlData);
-
-  var weeklyQuest = WeeklyEventQuest(questData, compQuestData);
+  let raidVaultJson = raidVaultResponse.getContentText();
+  let raidVaultTemp = JSON.parse(raidVaultJson);
 
 
   /*
-
-
-  //  Old function that could see reuse if a non-aotc end-boss drops a mount
-
-  var jainaJson = mountResponse.getContentText();
-  var jainaData = JSON.parse(jainaJson);
-  var jainaMountID = 1219; // Or whatever
-  var jainaFind = "No";
-
-  Logger.log(jainaData["mounts"].length)
-  
-  var i;
-  for (i = 0; i < jainaData["mounts"].length; i++) {
-    if (jainaData["mounts"][i]["mount"]["id"] == jainaMountID){
-      jainaFind = "Yes";
-      break;
-    }
-  }
+  ** In order to find Shadowlands Raid Statistics, it is stored as follows:
+  ** ["categories"][<category number>]["sub_categories"][<expansion number>]
+  ** However, if a character is missing achievements in a certain category (IE: Social {usually #6}), 
+  ** then it is skipped and "Dungeons & Raids" that is usually #9 gets bumped to #8.
+  **
+  ** The same occurs for <expansion number>. If a character has no raid or dungeon kills in
+  ** say, Cataclysm {usually #3}, then Shadowlands {usually #8} becomes #7.
+  **
+  ** Because of this, we need to search through the JSON data to find where
+  ** both "Dungeons & Raids" and "Shadowlands" are.
+  **
+  ** This gives the added benefit of future-proofing for Dragonflight and future expansions,
+  ** as "Shadowlands" in the search function can just be changed to "Dragonflight", or the relevant name.
   */
 
+
+  let dAndRCatNumSearch = 0;
+  let dAndRCatNumFound = 0;
+  do {
+    if (raidVaultTemp["categories"][dAndRCatNumSearch]["name"] == "Dungeons & Raids") {
+      var dAndRCatNumber = dAndRCatNumSearch;
+      dAndRCatNumFound = 1;
+    }
+    dAndRCatNumSearch += 1;
+  } while (dAndRCatNumFound == 0);
+
+  let xpacSearch = 0;
+  let xpacFound = 0;
+  do {
+    if (raidVaultTemp["categories"][dAndRCatNumber]["sub_categories"][xpacSearch]["name"] == "Shadowlands") {
+      var xpacsNumber = xpacSearch;
+      xpacFound = 1;
+    }
+    xpacSearch += 1;
+  } while (xpacFound == 0);
+
+
+  let raidVaultData = raidVaultTemp["categories"][dAndRCatNumber]["sub_categories"][xpacsNumber]["statistics"];
+
+  let resetTime = getCurrentResetTime();
+
+
+
+  //  Call all the extraction functions
+  let ringArr = enchantRing1(gearData);
+
+  let ringArr2 = enchantRing2(gearData);
+
+  let mainHandArr = enchantMainhand(gearData);
+
+  let offHandArr = enchantOffhand(gearData);
+
+  let backArr = enchantBack(gearData);
+
+  let chestArr = enchantChest(gearData);
+
+  let bagilvl = bagItemLevel(ilvlData);
+
+  let onilvl = equippedItemLevel(ilvlData);
+
+  let weeklyQuest = weeklyEventQuest(questData, compQuestData);
+
+  let raidVaultArr = weeklyRaidingVault(raidVaultData, resetTime);
+
+
+
   //Return the extracted data
-  return mainHandArr + "," + offHandArr + "," + backArr + "," + chestArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl + ", ," + weeklyQuest;
+  return mainHandArr + "," + offHandArr + "," + backArr + "," + chestArr + "," + ringArr + "," + ringArr2 + "," + bagilvl + "," + onilvl + ", ," + weeklyQuest + ", ," + raidVaultArr;
 }
 
 function mythicInformation(username, realm) {
@@ -277,7 +323,7 @@ function mythicInformation(username, realm) {
 
 }
 
-function EnchantRing1(data) {
+function enchantRing1(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -319,7 +365,7 @@ function EnchantRing1(data) {
   }
 }
 
-function EnchantRing2(data) {
+function enchantRing2(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -358,7 +404,7 @@ function EnchantRing2(data) {
   }
 }
 
-function EnchantMainhand(data) {
+function enchantMainhand(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -427,7 +473,7 @@ function EnchantMainhand(data) {
   }
 }
 
-function EnchantOffhand(data) {
+function enchantOffhand(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -509,7 +555,7 @@ function EnchantOffhand(data) {
   }
 }
 
-function EnchantBack(data) {
+function enchantBack(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -544,7 +590,7 @@ function EnchantBack(data) {
   }
 }
 
-function EnchantChest(data) {
+function enchantChest(data) {
 
   var slotSearch = 0;
   var slotFound = 0;
@@ -583,7 +629,7 @@ function EnchantChest(data) {
   }
 }
 
-function BagItemLevel(data) {
+function bagItemLevel(data) {
 
   var ilvl = data["average_item_level"];
 
@@ -592,7 +638,7 @@ function BagItemLevel(data) {
   return ilvl;
 }
 
-function EquippedItemLevel(data) {
+function equippedItemLevel(data) {
 
   var ilvl = data["equipped_item_level"];
 
@@ -600,7 +646,7 @@ function EquippedItemLevel(data) {
   return ilvl;
 }
 
-function WeeklyEventQuest(progData, completedData) {
+function weeklyEventQuest(progData, completedData) {
 
   var weeklyQuests = [
     [62638, "Emissary of War"],
@@ -650,5 +696,142 @@ function WeeklyEventQuest(progData, completedData) {
   }
 
   return questStatus;
+
+}
+
+
+
+function weeklyRaidingVault(raidData, resetTime) {
+
+  // Set up an Array for each boss.
+  let bossKillArr = ["", "", "", "", "", "", "", "", "", "", ""]
+
+  const RAIDBOSSAMOUNT = 11;
+  let bossIDsArr = [
+    //  Name,   Myth,  Hero,  Norm,  LFR
+    ["Vigil", 15427, 15426, 15425, 15424],
+    ["Skole", 15431, 15430, 15429, 15428],
+    ["Xymox", 15435, 15434, 15433, 15432],
+    ["Dause", 15439, 15438, 15437, 15436],
+    ["Panth", 15443, 15442, 15441, 15440],
+    ["Lihuv", 15447, 15446, 15445, 15444],
+    ["Halon", 15451, 15450, 15449, 15448],
+    ["Andui", 15455, 15454, 15453, 15452],
+    ["Lords", 15459, 15458, 15457, 15456],
+    ["Rygel", 15463, 15462, 15461, 15460],
+    ["Jaile", 15467, 15466, 15465, 15464]
+  ];
+
+  var bossNumber = 0;
+  //bossIDsArr.forEach(findBossKill(raidData, bossIDsArr))
+  //console.log(raidData)
+  //bossIDsArr.forEach(findBossKill)
+
+  console.log(resetTime);
+
+
+  //function findBossKill() {
+  for (h = 0; h < RAIDBOSSAMOUNT; h++) {
+    for (i = 1; i < 5; i++) {
+      //console.log("i is: " + i + "  h is: " + h)
+
+      // Search the whole of Shadowlands Kill Statistics JSON
+      let j = 0
+      let bossFound = 0;
+      do {
+        j = j + 1;
+        //console.log("j is: " + j) confirmed -- it is looping the whole thing [KEK]
+        //console.log("raidData's Boss is: " + raidData[j]["id"] + " bossIDsArr[h][i] is: " + bossIDsArr[h][i])   //confirmed -- it is looping the whole thing [KEK] (confirmed -- raidData's Boss is: 15444 bossIDsArr[h][i] is: 15444)
+        // In each entry, check if the "id" property matches what we're searching for.
+        if (raidData[j]["id"] == bossIDsArr[h][i]) {
+          // If it does, then we need to check if it was killed within this weekly reset.
+          if (raidData[j]["last_updated_timestamp"] > resetTime) {
+
+            // If it was killed this reset, add the correct letter difficulty,
+            switch (i) {
+              case 1:
+                bossKillArr.splice(h, 1, "M");
+                break;
+
+              case 2:
+                bossKillArr.splice(h, 1, "H");
+                break;
+
+              case 3:
+                bossKillArr.splice(h, 1, "N");
+                break;
+
+              case 4:
+                bossKillArr.splice(h, 1, "LFR");
+                break;
+
+              default:
+                bossKillArr.splice(h, 1, "");
+                console.log("Something brokey, in order to hit this.");
+                break;
+            }
+            // then stop searching this boss and go to the next.
+            bossFound = 1;
+          }
+        }
+      } while (j < raidData.length - 1 && bossFound == 0);
+    }
+    bossNumber = bossNumber + 1;
+  }
+
+  console.log("bossKillArr Looks like: " + bossKillArr);
+
+
+
+
+  var [mythic, heroic, normal, lfraid] = [0, 0, 0, 0];
+  var [slot1, slot2, slot3] = ["-", "-", "-"];
+  var vaultFinalized = "";
+
+  // Loop through the Array, and turn the kills into Great Vault format.
+  bossKillArr.forEach(killFinder);
+  function killFinder(difficultyCode) {
+    if (difficultyCode == "M") {
+      mythic += 1; heroic += 1; normal += 1; lfraid += 1;
+    }
+    if (difficultyCode == "H") {
+      heroic += 1; normal += 1; lfraid += 1;
+    }
+    if (difficultyCode == "N") {
+      normal += 1; lfraid += 1;
+    }
+    if (difficultyCode == "LFR") {
+      lfraid += 1;
+    }
+  }
+
+
+  calcTheVault(mythic, "M");
+  calcTheVault(heroic, "H");
+  calcTheVault(normal, "N");
+  calcTheVault(lfraid, "LFR");
+
+
+  function calcTheVault(diffKills, difficultyName) {
+
+    // If the slot is currently empty, 
+    if (slot1 == "-" && diffKills >= 2) {
+      slot1 = difficultyName;
+      vaultFinalized += "" + difficultyName + ","
+    }
+
+    if (slot2 == "-" && diffKills >= 5) {
+      slot2 = difficultyName;
+      vaultFinalized += "" + difficultyName + ","
+    }
+
+    if (slot3 == "-" && diffKills >= 8) {
+      slot3 = difficultyName;
+      vaultFinalized += "" + difficultyName
+    }
+    return;
+  }
+
+  return (slot1 + "," + slot2 + "," + slot3)
 
 }
